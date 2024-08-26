@@ -8,7 +8,7 @@ typedef struct PlayerState {
     char *filename;
 
     /* FFMPEG variables */
-    uint32_t vid_stream_index;
+    int32_t vid_stream_index;
     AVFormatContext *avfc;
     AVCodecContext *avcc;
 
@@ -18,7 +18,7 @@ typedef struct PlayerState {
     SDL_Texture *texture;
 } PlayerState;
 
-void PlayerState_Init(PlayerState *state);
+void PlayerState_Init(PlayerState *state, char *filename);
 
 int play(char *filename);
 
