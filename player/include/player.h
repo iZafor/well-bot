@@ -5,6 +5,8 @@
 #include <libavcodec/avcodec.h>
 
 typedef struct PlayerState {
+    char *filename;
+
     /* FFMPEG variables */
     uint32_t vid_stream_index;
     AVFormatContext *avfc;
@@ -15,3 +17,17 @@ typedef struct PlayerState {
     SDL_Renderer *renderer;
     SDL_Texture *texture;
 } PlayerState;
+
+void PlayerState_Init(PlayerState *state);
+
+int play(char *filename);
+
+int player_read_file(PlayerState *state);
+
+int player_configure_decoder(PlayerState *state);
+
+int player_prepare_rendering(PlayerState *state);
+
+int player_render(PlayerState *state);
+
+void player_quit(PlayerState *state);
