@@ -174,3 +174,96 @@ int player_prepare_rendering(PlayerState *state) {
 
     return 0;
 }
+
+int player_render(PlayerState *state) {
+    int errcode = 0;
+
+    AVPacket *pkt = av_packet_alloc();
+    if (pkt == NULL) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_APPLICATION,
+            "Failed allocate memory for AVPacket!\n"
+        );        
+        return AVERROR(ENOMEM);
+    }
+    SDL_Log("Memory allocated for packet\n");
+
+    AVFrame *frame = av_frame_alloc();
+    if (frame == NULL) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_APPLICATION,
+            "Failed allocate memory for AVFrame!\n"
+        );        
+        return AVERROR(ENOMEM);
+    }
+    SDL_Log("Memory allocated for frame\n");
+
+    while (1) {
+        if ((errcode = av_read_frame(state->avfc, pkt)) < 0) {
+            if (errcode == AVERROR_EOF) {
+                errcode = 0; 
+                break;
+            }
+            SDL_LogError(
+                SDL_LOG_CATEGORY_APPLICATION,
+                "Failed to read frame! Message: %s\n",
+                av_err2str(errcode)
+            );
+            break;
+        }
+
+        if (pkt->stream_index == state->vid_stream_index) {
+            if ((errcode = avcodec_send_packet(state->avcc, pkt)) < 0) {
+                SDL_LogError(
+                    SDL_LOG_CATEGORY_APPLICATION,
+                    "Failed to send packet to the decoder! Message: %s\n",
+                    av_err2str(errcode)
+                );
+                break;
+            }
+
+            if ((errcode = avcodec_receive_frame(state->avcc, frame)) < 0) {
+                if (frame->pts == AV_NOPTS_VALUE) {
+                    errcode = 0;
+                    continue;
+                }
+
+                SDL_LogError(
+                    SDL_LOG_CATEGORY_APPLICATION,
+                    "Failed to send packet to the decoder! Message: %s\n",
+                    av_err2str(errcode)
+                );
+                break;
+            }
+
+            SDL_UpdateYUVTexture(
+                state->texture,
+                NULL,
+                frame->data[0], frame->linesize[0],
+                frame->data[1], frame->linesize[1],
+                frame->data[2], frame->linesize[2]
+            );
+            SDL_RenderClear(state->renderer);
+            SDL_RenderCopy(state->renderer, state->texture, NULL, NULL);
+            SDL_RenderPresent(state->renderer);
+        }
+
+        av_packet_unref(pkt);
+    }
+
+    if (pkt != NULL) av_packet_free(&pkt);
+    if (frame != NULL) av_frame_free(&frame);
+
+    SDL_Log("Rendering completed\n");
+
+    return errcode;
+}
+
+void player_quit(PlayerState *state) {
+    if (state->avfc != NULL) avformat_close_input(&state->avfc);
+    if (state->avcc != NULL) avcodec_free_context(&state->avcc);
+
+    if (state->texture != NULL) SDL_DestroyTexture(state->texture);
+    if (state->renderer != NULL) SDL_DestroyRenderer(state->renderer);
+    if (state->window != NULL) SDL_DestroyWindow(state->window);
+}
