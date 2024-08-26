@@ -114,3 +114,52 @@ int player_configure_decoder(PlayerState *state) {
 
     return 0;
 }
+
+int player_prepare_rendering(PlayerState *state) {
+    state->window = SDL_CreateWindow(
+        "Player",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        0, 0,
+        SDL_WINDOW_FULLSCREEN_DESKTOP
+    );
+    if (state->window == NULL) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_APPLICATION,
+            "Failed to create to window! Message: %s\n",
+            SDL_GetError()
+        );
+        return -1;
+    }
+    SDL_Log("Window created\n");
+
+    state->renderer = SDL_CreateRenderer(state->window, -1, SDL_RENDERER_SOFTWARE);
+    if (state->renderer == NULL) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_APPLICATION,
+            "Failed to create to renderer! Message: %s\n",
+            SDL_GetError()
+        );
+        return -1;
+    }
+    SDL_Log("Renderer created\n");
+
+    state->texture = SDL_CreateTexture(
+        state->renderer,
+        SDL_PIXELFORMAT_YV12,
+        SDL_TEXTUREACCESS_STREAMING,
+        state->avcc->width,
+        state->avcc->height
+    );
+    if (state->texture == NULL) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_APPLICATION,
+            "Failed to create to texture! Message: %s\n",
+            SDL_GetError()
+        );
+        return -1;
+    }
+    SDL_Log("Texture created\n");
+
+    return 0;
+}
