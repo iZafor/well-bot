@@ -61,3 +61,56 @@ int player_read_file(PlayerState *state) {
 
     return errcode;
 }
+
+int player_configure_decoder(PlayerState *state) {
+    for (uint32_t i = 0; i < state->avfc->nb_streams; i++) {
+        AVCodecParameters *params = state->avfc->streams[i]->codecpar;
+
+        if (params->codec_type == AVMEDIA_TYPE_VIDEO) {
+            const AVCodec *avc = avcodec_find_decoder(params->codec_id);
+            if (avc == NULL) {
+                SDL_LogError(
+                    SDL_LOG_CATEGORY_APPLICATION,
+                    "Decoder not found!\n"
+                );
+                return AVERROR_DECODER_NOT_FOUND;
+            }
+            SDL_Log("Found decoder\n");
+
+            state->avcc = avcodec_alloc_context3(avc);
+            if (state->avcc == NULL) {
+                SDL_LogError(
+                    SDL_LOG_CATEGORY_APPLICATION,
+                    "Failed to allocate memory for AVCodecContext!\n"
+                );
+                return AVERROR(ENOMEM);
+            } 
+            SDL_Log("Memory allocated for AVCodecContext\n");
+
+            int errcode = avcodec_open2(state->avcc, avc, NULL);
+            if (errcode < 0) {
+                SDL_LogError(
+                    SDL_LOG_CATEGORY_APPLICATION,
+                    "Failed to open the decoder! Message: %s\n",
+                    av_err2str(errcode)
+                );
+                return errcode;
+            }
+            SDL_Log("Ready for decoding\n");
+
+            state->vid_stream_index = i;
+
+            break;
+        }
+    }
+
+    if (state->vid_stream_index == -1) {
+        SDL_LogError(
+            SDL_LOG_CATEGORY_APPLICATION,
+            "Video stream not found!\n"
+        );
+        return AVERROR_INVALIDDATA;
+    }
+
+    return 0;
+}
