@@ -198,7 +198,15 @@ int player_render(PlayerState *state) {
     }
     SDL_Log("Memory allocated for frame\n");
 
+    SDL_Event ev;
+
     while (1) {
+        while (SDL_PollEvent(&ev) != 0) {
+            if (ev.type == SDL_KEYDOWN && ev.key.keysym.sym == SDLK_q) {
+                goto end;
+            }
+        }
+
         if ((errcode = av_read_frame(state->avfc, pkt)) < 0) {
             if (errcode == AVERROR_EOF) {
                 errcode = 0; 
@@ -251,12 +259,13 @@ int player_render(PlayerState *state) {
         av_packet_unref(pkt);
     }
 
-    if (pkt != NULL) av_packet_free(&pkt);
-    if (frame != NULL) av_frame_free(&frame);
+    end:
+        if (pkt != NULL) av_packet_free(&pkt);
+        if (frame != NULL) av_frame_free(&frame);
 
-    SDL_Log("Rendering completed\n");
+        SDL_Log("Rendering completed\n");
 
-    return errcode;
+        return errcode;
 }
 
 void player_quit(PlayerState *state) {
