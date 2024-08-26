@@ -87,7 +87,18 @@ int player_configure_decoder(PlayerState *state) {
             } 
             SDL_Log("Memory allocated for AVCodecContext\n");
 
-            int errcode = avcodec_open2(state->avcc, avc, NULL);
+            int errcode = avcodec_parameters_to_context(state->avcc, params);
+            if (errcode < 0) {
+                SDL_LogError(
+                    SDL_LOG_CATEGORY_APPLICATION,
+                    "Failed to copy codec parameters! Message: %s\n",
+                    av_err2str(errcode)
+                );
+                return errcode;
+            }
+            SDL_Log("Codec parameters are copied\n");
+
+            errcode = avcodec_open2(state->avcc, avc, NULL);
             if (errcode < 0) {
                 SDL_LogError(
                     SDL_LOG_CATEGORY_APPLICATION,
