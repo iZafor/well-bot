@@ -199,6 +199,7 @@ int player_render(PlayerState *state) {
     SDL_Log("Memory allocated for frame\n");
 
     SDL_Event ev;
+    double time_base = av_q2d(state->avfc->streams[state->vid_stream_index]->time_base) * 1000;
 
     while (1) {
         while (SDL_PollEvent(&ev) != 0) {
@@ -242,6 +243,15 @@ int player_render(PlayerState *state) {
                     av_err2str(errcode)
                 );
                 break;
+            }
+
+            double delay = (frame->pts * time_base) - (double)SDL_GetTicks64();
+
+            if (delay > 0) {
+                SDL_Delay((uint32_t)delay);
+            } else {
+                av_packet_unref(pkt);
+                continue;
             }
 
             SDL_UpdateYUVTexture(
